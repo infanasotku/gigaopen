@@ -1,0 +1,24 @@
+# Gigaopen's upstream baseline. This custom manifest does not install dependencies.
+# Commit SHAs are authoritative; tags and versions describe the selected releases.
+# Update pins together only after reviewing upstream changes and checking compatibility.
+lock_version: 1
+resolved_at: "2026-10-08"
+
+# Source revisions are verified; integration compatibility has not been tested.
+compatibility:
+  status: untested
+
+dependencies:
+  openspec:
+    repository: https://github.com/Fission-AI/OpenSpec.git
+    tag: v1.14.1
+    commit: 87c3595ace6a2e22957f39ebe5b74c2f2316e0cb
+    package:
+      name: "@fission-ai/openspec"
+      version: "1.14.1"
+
+  superpowers:
+    repository: https://github.com/obra/superpowers.git
+    tag: v6.4.2
+    # Peeled commit, not the annotated tag object's SHA.
+    commit: 8ca22dba9a94f28898bbce59f2537ff4d87c747d
