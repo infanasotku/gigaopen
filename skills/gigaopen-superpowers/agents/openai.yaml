@@ -1,0 +1,5 @@
+interface:
+  display_name: "Gigaopen Superpowers"
+  short_description: "Opt into Superpowers for an OpenSpec change"
+policy:
+  allow_implicit_invocation: false

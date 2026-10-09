@@ -1,0 +1,2 @@
+# Install the project and its test/lint dependencies from pyproject.toml.
+-e .[dev]
