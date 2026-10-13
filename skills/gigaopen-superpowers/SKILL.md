@@ -35,8 +35,15 @@ Do not load `using-superpowers/SKILL.md`.
 Resolve `superpowers:<name>` through
 `resolve --session SESSION --skill superpowers:NAME`, then read the returned file.
 Resolve templates or scripts with `--resource RELATIVE_PATH`. Paths are relative
-to that skill's folder. Load sibling skills through the resolver rather than
-assuming a marketplace skill of the same name is the pinned version. Retain the
+to that skill's folder. Resolution is read-only: inspect `inputs_status` in the
+result. If it is `stale`, you may read pinned guidance and review templates, but
+must not resume the old plan or run resolved helpers. Keep current OpenSpec
+edits intact; never revert them just to obtain a resource. Replan in a fresh
+state root before further implementation. A returned path or `execution_cwd`
+is not authorization to execute; validate the session with `prepare` before
+resuming implementation or running upstream helpers.
+
+Load sibling skills through the resolver rather than assuming a marketplace skill of the same name is the pinned version. Retain the
 upstream tree's relative layout. The resolver deliberately rejects brainstorming,
 using-superpowers, and unrelated utility skills; unsupported branches return to
 OpenSpec or the developer's chosen workflow instead of widening the adapter.
@@ -55,7 +62,9 @@ Keep the shared requirements authoritative. Return conflicting requirements to
 OpenSpec rather than silently deciding new product behavior.
 
 If `resume` is true, inspect the existing plan and ledger; do not overwrite them.
-The helper rejects changed inputs or pins while preserving old state. Replanning
+Preparation and task extraction reject stale inputs; read-only resolution
+reports them without blocking access to guidance. Pin/version checks remain
+mandatory for every command, and old state is preserved. Replanning
 currently requires a new state root and review of prior progress; do not copy
 old completion or verification claims into the new plan without checking them.
 

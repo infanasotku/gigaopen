@@ -26,7 +26,8 @@ def main():
     for option in ("repo", "change", "upstream", "state-root"):
         prepare.add_argument(f"--{option}", required=True)
     resolve = commands.add_parser(
-        "resolve", help="Resolve an execution skill or one of its resources"
+        "resolve",
+        help="Look up a pinned resource read-only and report OpenSpec input freshness",
     )
     resolve.add_argument("--session", required=True)
     resolve.add_argument("--skill", required=True)

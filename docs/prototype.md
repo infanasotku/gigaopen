@@ -64,8 +64,34 @@ Switching worktrees requires a separately prepared session.
 
 The fingerprint includes living specs, change specs, proposal, optional design,
 and task text. Task checkbox changes are treated as progress, not new requirements.
-Changed inputs or versions stop the handoff. For this prototype, explicitly
+Changed or missing inputs prevent execution handoff and task extraction:
+`prepare` refuses stale sessions (or routes missing artifacts back to OpenSpec),
+and `brief` refuses to run the upstream helper. For this prototype, explicitly
 replan using a fresh state root; existing plans and evidence are left intact.
+
+`resolve` is a read-only lookup, so pinned skills and review templates remain
+accessible after completion edits or requirement changes. Its JSON includes
+`read_only: true` and `inputs_status: current` or `stale`; stale results also
+include a warning against executing the old plan. It does not update the stored
+fingerprint, rewrite documents, or certify completion. For example, after editing
+the design, resolving a reviewer template returns fields like:
+
+```json
+{
+  "path": "/private/superpowers/skills/subagent-driven-development/re-review-prompt.md",
+  "execution_cwd": "/project",
+  "read_only": true,
+  "inputs_status": "stale",
+  "warning": "OpenSpec inputs changed. Resource lookup is read-only; do not execute the stale plan or its helpers. Replan in a fresh state root before continuing execution; old state is preserved."
+}
+```
+
+Keep final documents in place while reading review guidance. Before resuming
+implementation or running resolved helpers directly, revalidate with `prepare`.
+The CLI cannot prevent commands run outside it; the bridge skill carries this
+execution rule. Invalid pins, dirty upstream trees, session identity errors,
+unsafe paths, and forbidden skills still fail resolution. Version changes also
+remain blocking for every command.
 There is no automatic migration, task-completion update, merge, push, or archive.
 
 An independently installed Superpowers plugin can still influence the session.

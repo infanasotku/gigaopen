@@ -49,6 +49,9 @@ class TestBridge:
         refs = self.upstream / "skills/using-superpowers/references"
         refs.mkdir(parents=True)
         (refs / "codex-tools.md").write_text("# Platform guidance\n")
+        (
+            self.upstream / "skills/subagent-driven-development/re-review-prompt.md"
+        ).write_text("# Review the changed implementation\n")
         git(self.upstream, "add", ".")
         git(self.upstream, "commit", "-qm", "Fixture skills")
         self.lock = self.root / "lock.yaml"
@@ -113,27 +116,101 @@ class TestBridge:
                 session, "writing-plans", "../using-superpowers/SKILL.md"
             )
 
-    def test_changed_specs_reject_stale_session_and_preserve_plan(self):
+    @pytest.mark.parametrize(
+        "artifact",
+        [
+            "proposal.md",
+            "design.md",
+            "tasks.md",
+            "specs/greeting/spec.md",
+        ],
+    )
+    def test_changed_inputs_allow_read_only_review_but_block_execution(self, artifact):
         result = self.prepare()
-        Path(result["plan"]).write_text("# Preserve this plan\n")
-        (self.artifact_dir / "specs/greeting/spec.md").write_text(
-            "Changed requirement\n"
+        plan = Path(result["plan"])
+        plan.write_text("# Preserve this plan\n")
+        session = Path(result["session"])
+        before = session.read_bytes()
+        changed = self.artifact_dir / artifact
+        changed.write_text("Updated requirement or completion narrative\n")
+        status = git(self.repo, "status", "--porcelain", "--untracked-files=all")
+
+        resolved = self.bridge.resolve(
+            session, "subagent-driven-development", "re-review-prompt.md"
         )
+        assert (
+            Path(resolved["path"]).read_text()
+            == "# Review the changed implementation\n"
+        )
+        assert resolved["read_only"] is True
+        assert resolved["inputs_status"] == "stale"
+        assert "Replan" in resolved["warning"]
         with pytest.raises(BridgeError, match="inputs changed"):
-            self.bridge.resolve(result["session"], "writing-plans")
-        with pytest.raises(BridgeError):
             self.prepare()
-        assert Path(result["plan"]).read_text() == "# Preserve this plan\n"
+        with pytest.raises(BridgeError, match="inputs changed"):
+            self.bridge.brief(session, 1)
+        assert session.read_bytes() == before
+        assert plan.read_text() == "# Preserve this plan\n"
+        assert changed.read_text() == "Updated requirement or completion narrative\n"
+        assert (
+            git(self.repo, "status", "--porcelain", "--untracked-files=all") == status
+        )
+        assert not (self.repo / ".superpowers").exists()
         fresh = self.prepare(state_root=self.root / "replanned")
         assert not Path(fresh["plan"]).exists()
+
+    def test_missing_inputs_allow_review_without_certifying_execution(self):
+        session = self.prepare()["session"]
+        (self.artifact_dir / "tasks.md").unlink()
+        assert (
+            self.bridge.resolve(session, "requesting-code-review")["inputs_status"]
+            == "stale"
+        )
+        assert self.prepare()["route"] == "openspec"
+        with pytest.raises(BridgeError, match="inputs changed"):
+            self.bridge.brief(session, 1)
 
     def test_task_progress_does_not_invalidate_plan_but_task_text_does(self):
         session = self.prepare()["session"]
         (self.artifact_dir / "tasks.md").write_text("- [x] 1.1 Implement greeting\n")
-        self.bridge.resolve(session, "writing-plans")
+        resolved = self.bridge.resolve(session, "writing-plans")
+        assert resolved["inputs_status"] == "current"
+        assert resolved["read_only"] is True
+        assert "warning" not in resolved
+        assert self.prepare()["session"] == session
         (self.artifact_dir / "tasks.md").write_text("- [x] 1.1 Implement farewell\n")
+        assert self.bridge.resolve(session, "writing-plans")["inputs_status"] == "stale"
+        with pytest.raises(BridgeError, match="inputs changed"):
+            self.prepare()
+
+    @pytest.mark.parametrize(
+        "invalid", ["dirty_cache", "wrong_pin", "plan_path", "repo_identity"]
+    )
+    def test_stale_resolution_preserves_trust_checks(self, invalid):
+        session_path = Path(self.prepare()["session"])
+        (self.artifact_dir / "proposal.md").write_text("Changed\n")
+        session = json.loads(session_path.read_text())
+        if invalid == "dirty_cache":
+            (self.upstream / "extra.md").write_text("Unpinned content\n")
+        elif invalid == "wrong_pin":
+            session["upstream_commit"] = "0" * 40
+        elif invalid == "plan_path":
+            session["plan"] = str(self.repo / "plan.md")
+        else:
+            session["git_common_dir"] = str(self.root / "other.git")
+        session_path.write_text(json.dumps(session))
         with pytest.raises(BridgeError):
-            self.bridge.resolve(session, "writing-plans")
+            self.bridge.resolve(session_path, "requesting-code-review")
+
+    def test_stale_resolution_still_rejects_forbidden_resources(self):
+        session = self.prepare()["session"]
+        (self.artifact_dir / "proposal.md").write_text("Changed\n")
+        for skill, resource in [
+            ("brainstorming", "SKILL.md"),
+            ("writing-plans", "../using-superpowers/SKILL.md"),
+        ]:
+            with pytest.raises(BridgeError):
+                self.bridge.resolve(session, skill, resource)
 
     def test_pin_and_dirty_cache_rejected_before_state_creation(self):
         (self.upstream / "skills/writing-plans/SKILL.md").write_text("Changed")
@@ -224,6 +301,33 @@ class TestBridge:
         )
         assert rejected.returncode == 1
         assert "execution set" in json.loads(rejected.stderr)["error"]
+
+        (self.artifact_dir / "proposal.md").write_text("Completion narrative changed\n")
+        resolved = subprocess.run(
+            command
+            + [
+                "resolve",
+                "--session",
+                handoff["session"],
+                "--skill",
+                "subagent-driven-development",
+                "--resource",
+                "re-review-prompt.md",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert json.loads(resolved.stdout)["inputs_status"] == "stale"
+        assert json.loads(resolved.stdout)["read_only"] is True
+        blocked = subprocess.run(
+            command + ["brief", "--session", handoff["session"], "--task", "1"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert blocked.returncode == 1
+        assert "inputs changed" in json.loads(blocked.stderr)["error"]
 
     @pytest.mark.skipif(
         not os.environ.get("GIGAOPEN_TEST_UPSTREAM"),

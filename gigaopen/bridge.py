@@ -236,7 +236,7 @@ class Bridge:
             "resume": plan.exists(),
         }
 
-    def _session(self, path):
+    def _session(self, path, *, require_current_inputs=True):
         path = Path(path).resolve(strict=True)
         session = json.loads(path.read_text())
         if (
@@ -263,21 +263,35 @@ class Bridge:
             raise BridgeError("Plan must be an ordinary file beside its session.")
         self.upstream(session["upstream"])
         _, missing, fingerprint = _artifacts(repo, session["change"])
-        if missing or fingerprint != session["spec_fingerprint"]:
+        stale = bool(missing) or fingerprint != session["spec_fingerprint"]
+        if require_current_inputs and stale:
             raise BridgeError(
                 "OpenSpec inputs changed. Replan in a fresh state root; old state is preserved."
             )
-        return session
+        return session, stale
 
     def resolve(self, session_path, skill, resource="SKILL.md"):
-        session = self._session(session_path)
+        # Resource lookup cannot authorize execution or refresh a stale plan.
+        session, stale = self._session(session_path, require_current_inputs=False)
         path = self._resource(Path(session["upstream"]), skill, resource)
-        return {"path": str(path), "execution_cwd": session["repo"]}
+        result = {
+            "path": str(path),
+            "execution_cwd": session["repo"],
+            "read_only": True,
+            "inputs_status": "stale" if stale else "current",
+        }
+        if stale:
+            result["warning"] = (
+                "OpenSpec inputs changed. Resource lookup is read-only; do not "
+                "execute the stale plan or its helpers. Replan in a fresh state "
+                "root before continuing execution; old state is preserved."
+            )
+        return result
 
     def brief(self, session_path, task):
         if task < 1:
             raise BridgeError("Task number must be positive.")
-        session = self._session(session_path)
+        session, _ = self._session(session_path)
         plan = Path(session["plan"])
         if not plan.is_file():
             raise BridgeError(
