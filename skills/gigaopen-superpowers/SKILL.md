@@ -5,20 +5,37 @@ description: Explicitly opt into implementing an OpenSpec change with the pinned
 
 # Gigaopen Superpowers bridge
 
-This source-tree prototype connects an explicitly selected OpenSpec change to
-private Superpowers resources. It does not install or globally activate them.
-The companion CLI and lock live at the bundle root, two directories above this
-skill's directory. Run its CLI from that root using `venv/bin/python -m gigaopen`.
+This source-tree bridge connects an explicitly selected OpenSpec change to private
+Superpowers resources. Personal setup registers only this bridge; opening a project
+never activates it. Run the CLI through the launcher beside this skill:
+
+```sh
+bash /absolute/path/to/gigaopen-superpowers/scripts/gigaopen prepare \
+  --repo /absolute/path/to/project --change CHANGE
+```
+
+Use the actual installed skill path to locate `scripts/gigaopen`. It resolves its
+source checkout through the registration symlink and uses that checkout's
+`venv/bin/python`, preserving the caller's working directory. No global Python or
+shell PATH configuration is needed. A missing interpreter requires creating the
+source checkout's Python 3.12 venv and installing its requirements.txt.
 
 ## Prepare the handoff
 
-Resolve the target repository, change name, private pinned Superpowers checkout,
-and local state root with the developer. Reuse supplied choices; ask only for
-missing or ambiguous inputs. The cache and state must be outside target projects
-and agent discovery folders. Do not install the upstream plugin or link its skill
-tree into a discovery directory as part of this workflow.
+Resolve the target repository and change from the request/current project. Ask
+only if they remain ambiguous. Reuse explicit upstream/state choices; otherwise
+omit those options to use the CLI defaults. The cache defaults to
+`~/.cache/gigaopen/upstream/superpowers/<locked-commit>/` and state to
+`~/.local/state/gigaopen/` (respecting XDG_CACHE_HOME/XDG_STATE_HOME). Existing
+sessions keep their recorded paths; defaults do not migrate old plans.
 
-Run `prepare --repo TARGET --change CHANGE --upstream CACHE --state-root STATE`.
+Preparation stays offline. If the pinned cache is missing, report the setup
+command; run setup only when the developer authorizes personal installation.
+Setup can seed its cache with `setup --upstream EXISTING_CHECKOUT`; normal handoffs
+never install the upstream plugin, register its skill tree, or advance pins.
+
+Run `prepare --repo TARGET --change CHANGE`, optionally with `--upstream CACHE`
+and `--state-root STATE`. Keep cache/state outside target projects and discovery.
 This verifies the upstream commit and its clean tree, fingerprints OpenSpec
 inputs, and produces JSON. If the route is `openspec`, explore or complete the
 missing shared artifacts using the project's OpenSpec workflow before preparing

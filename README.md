@@ -5,8 +5,9 @@ requirements to an optional [Superpowers](https://github.com/obra/superpowers)
 implementation workflow. Each developer explicitly opts in; teammates keep their
 own agents and skills. Detailed plans and session state stay private.
 
-The current prototype provides a bridge skill and Python CLI. Personal
-installation, conflict detection, and end-to-end agent validation are still pending.
+The source-tree prototype provides personal setup, an explicit-only bridge skill,
+and a Python CLI. Full conflict diagnostics and upstream upgrade tooling remain
+planned.
 
 ## Usage
 
@@ -14,26 +15,27 @@ Use a Python 3.12 virtual environment at `venv/`. From the Gigaopen source root:
 
 ```sh
 venv/bin/python -m pip install -r requirements.txt
+venv/bin/python -m gigaopen setup
 ```
 
-Provide a pristine Superpowers checkout at the commit in
-[`upstream.lock.yaml`](upstream.lock.yaml). Keep that checkout and the state
-directory outside the target repository and agent skill-discovery folders.
+Setup fetches the exact Superpowers commit in
+[`upstream.lock.yaml`](upstream.lock.yaml) into a private cache and links only the
+bridge into `~/.agents/skills/`. Keep this checkout and its venv in place.
+Then explicitly ask your agent:
 
-Ask your agent to read [the bridge skill](skills/gigaopen-superpowers/SKILL.md):
+> Use $gigaopen-superpowers to implement OpenSpec change `add-greeting` in this repository.
 
-> Use Gigaopen's Superpowers bridge for `add-greeting` in `/path/to/project`,
-> with upstream `/path/to/private/superpowers` and state `/path/to/private/state`.
-
-The agent prepares the handoff with:
+The bridge uses private cache/state defaults, so you no longer need to supply
+those paths. For manual use from any directory:
 
 ```sh
-venv/bin/python -m gigaopen prepare \
-  --repo /path/to/project \
-  --change add-greeting \
-  --upstream /path/to/private/superpowers \
-  --state-root /path/to/private/state
+bash ~/.agents/skills/gigaopen-superpowers/scripts/gigaopen prepare \
+  --repo /path/to/project --change add-greeting
 ```
+
+`--upstream` and `--state-root` override the defaults. Normal commands stay offline.
+`venv/bin/python -m gigaopen uninstall` removes only this checkout's registration;
+private plans and caches remain.
 
 ## Flow
 

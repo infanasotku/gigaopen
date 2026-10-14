@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Resolve the source checkout even when invoked through the personal skill symlink.
+set -euo pipefail
+skill_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+bundle_dir=$(cd -- "$skill_dir/../.." && pwd -P)
+if [[ ! -x "$bundle_dir/venv/bin/python" ]]; then
+  echo "Missing $bundle_dir/venv/bin/python; create a Python 3.12 venv and install requirements.txt." >&2
+  exit 1
+fi
+export PYTHONPATH="$bundle_dir${PYTHONPATH:+:$PYTHONPATH}"
+exec "$bundle_dir/venv/bin/python" -P -m gigaopen "$@"

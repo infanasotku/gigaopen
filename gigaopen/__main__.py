@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 
 from gigaopen.bridge import Bridge, BridgeError
+from gigaopen.personal import PersonalSetup
 
 
 def main():
@@ -23,8 +24,19 @@ def main():
     prepare = commands.add_parser(
         "prepare", help="Validate a change and prepare private handoff state"
     )
-    for option in ("repo", "change", "upstream", "state-root"):
+    for option in ("repo", "change"):
         prepare.add_argument(f"--{option}", required=True)
+    prepare.add_argument("--upstream", help="Override the private pinned cache")
+    prepare.add_argument("--state-root", help="Override the private state root")
+    setup = commands.add_parser(
+        "setup", help="Provision pinned source and register the personal bridge"
+    )
+    setup.add_argument(
+        "--upstream", help="Seed the cache from an existing pristine pinned checkout"
+    )
+    commands.add_parser(
+        "uninstall", help="Remove only this checkout's personal skill registration"
+    )
     resolve = commands.add_parser(
         "resolve",
         help="Look up a pinned resource read-only and report OpenSpec input freshness",
@@ -41,9 +53,13 @@ def main():
     try:
         bridge = Bridge(args.lock)
         if args.command == "prepare":
-            result = bridge.prepare(
+            result = PersonalSetup(bridge).prepare(
                 args.repo, args.change, args.upstream, args.state_root
             )
+        elif args.command == "setup":
+            result = PersonalSetup(bridge).setup(args.upstream)
+        elif args.command == "uninstall":
+            result = PersonalSetup(bridge).uninstall()
         elif args.command == "resolve":
             result = bridge.resolve(args.session, args.skill, args.resource)
         else:

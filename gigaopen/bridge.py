@@ -123,7 +123,9 @@ class Bridge:
         try:
             if lock["lock_version"] != 1:
                 raise BridgeError("Unsupported lock version.")
-            self.commit = lock["dependencies"]["superpowers"]["commit"]
+            dependency = lock["dependencies"]["superpowers"]
+            self.commit = dependency["commit"]
+            self.repository = dependency.get("repository")
         except (KeyError, TypeError) as exc:
             raise BridgeError("Lock must define the Superpowers commit.") from exc
         if not isinstance(self.commit, str) or not re.fullmatch(

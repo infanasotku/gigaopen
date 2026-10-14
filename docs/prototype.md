@@ -1,36 +1,77 @@
 # Explicit Superpowers bridge prototype
 
-The prototype consists of one explicit-only skill and a Python helper. Nothing
-is installed into personal or target-project skill registries automatically.
-It currently supports conventional OpenSpec artifact paths; custom schema
-layouts and agent-runtime discovery are not validated by the helper.
+The prototype consists of an explicit-only skill, a Python helper, and personal
+source-tree setup. It supports conventional OpenSpec artifact paths. Custom schema
+layouts and full agent-runtime conflict detection remain outside its scope.
 
 ## Local setup
 
-From the Gigaopen source root, use its Python 3.12+ virtual environment:
+Create a Python 3.12 virtual environment at `venv/`. From the Gigaopen source root:
 
 ```sh
 venv/bin/python -m pip install -r requirements.txt
+venv/bin/python -m gigaopen setup
 ```
 
-Supply a separate, pristine Git checkout of Superpowers at the exact commit in
-`upstream.lock.yaml`. Keep it outside skill-discovery directories and target
-projects. The helper checks its HEAD and working tree on every operation. It
-does not fetch code, register skills, install plugins, or update upstream pins.
+Setup fetches the exact Superpowers commit from `upstream.lock.yaml`, verifies the
+pristine checkout, and registers a symlink at `~/.agents/skills/gigaopen-superpowers`.
+Only the bridge is registered; its metadata disables implicit invocation. This is
+an editable source-tree installation: retain the Gigaopen checkout and its venv.
+Changes to the bridge in that checkout become visible through the symlink.
+
+Default locations:
+
+| Resource | Default |
+| --- | --- |
+| Upstream checkout | `~/.cache/gigaopen/upstream/superpowers/<full-commit>/` |
+| Private state | `~/.local/state/gigaopen/` |
+| Bridge registration | `~/.agents/skills/gigaopen-superpowers` |
+
+Absolute `XDG_CACHE_HOME` and `XDG_STATE_HOME` override the cache/state base folders.
+State retains the existing repository/worktree/change separation. Existing sessions
+are not moved or automatically rediscovered under the new defaults.
+
+To seed the default cache without a network fetch, supply an existing pristine
+checkout at the exact locked commit:
+
+```sh
+venv/bin/python -m gigaopen setup --upstream /absolute/path/to/private/superpowers
+```
+
+Repeated setup reuses a valid cache and the same registration. It refuses unrelated
+files, directories, or symlinks at the registration path and never resets an existing
+cache. A failed fetch removes only the new checkout created by that invocation;
+interrupted or modified caches require inspection, not automatic replacement.
+Source-tree setup requires Git, Bash and the project interpreter. It does not
+install OpenSpec or change the lock, shell PATH, agent/model preferences, or project
+files. [Codex supports personal symlinked skills and explicit invocation](https://learn.chatgpt.com/docs/build-skills).
+
+Remove this checkout's registration with:
+
+```sh
+venv/bin/python -m gigaopen uninstall
+```
+
+Uninstall preserves the source checkout, all upstream caches and private plans. A
+registration pointing somewhere else is left intact. To move the Gigaopen checkout,
+uninstall before moving it and run setup from the new location.
 
 ## Try a handoff
 
-Explicitly ask your agent to read and use
-`skills/gigaopen-superpowers/SKILL.md` for a specified repository and change.
-For a manual helper check, run from Gigaopen's source root:
+After setup, explicitly select `$gigaopen-superpowers` for a repository and change.
+The skill's `scripts/gigaopen` launcher works through the registration symlink from
+any working directory. Without registration, the source skill remains usable by
+absolute path. For a manual helper check, run from Gigaopen's source root:
 
 ```sh
 venv/bin/python -m gigaopen prepare \
   --repo /absolute/path/to/project \
-  --change add-greeting \
-  --upstream /absolute/path/to/private/superpowers \
-  --state-root /absolute/path/to/private/gigaopen-state
+  --change add-greeting
 ```
+
+`--upstream` and `--state-root` remain optional explicit overrides. No normal
+command fetches code or registers skills; a missing cache reports an actionable
+setup error. An existing session retains its recorded upstream and state paths.
 
 Missing change artifacts produce `route: openspec` and no local session. Complete
 artifacts produce `route: superpowers`, absolute input paths, a local plan path,
@@ -115,6 +156,6 @@ pinned-source check runs upstream task extraction and resolves a reviewer templa
 
 The metadata disables implicit invocation, and the cache is not registered for
 discovery. These structural properties are tested; they are not proof of model
-behavior. A real agent session still needs to demonstrate ordinary work without
-activation, explicit planning and execution, cross-skill loading, and resume.
-The lock's integration compatibility remains `untested` until that is done.
+behavior. A completed user task has exercised explicit planning, subagent execution,
+review, scope changes and replanning. Broader host compatibility and ordinary-session
+nonactivation remain unverified; the lock's compatibility status stays `untested`.
