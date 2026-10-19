@@ -4,6 +4,43 @@ The prototype consists of an explicit-only skill, a Python helper, and personal
 source-tree setup. It supports conventional OpenSpec artifact paths. Custom schema
 layouts and full agent-runtime conflict detection remain outside its scope.
 
+## Bootstrap installation
+
+With Git and Python 3.12 available:
+
+```sh
+wget -qO- https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh | bash
+```
+
+Alternatively download setup.sh and run `bash setup.sh`. The script installs
+Gigaopen into `${XDG_DATA_HOME:-~/.local/share}/gigaopen/source`, creates its venv,
+installs requirements.txt there, then calls the Python `setup` command below.
+It uses an existing project venv first, otherwise `python3.12` or `--python`.
+It does not install system packages or edit shell profiles.
+
+Options can be passed through the pipe with `bash -s --`:
+
+```sh
+wget -qO- https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh |
+  bash -s -- --dir /absolute/path/to/gigaopen --python /path/to/python3.12
+```
+
+`--ref TAG_OR_COMMIT` selects the Gigaopen source revision on first installation.
+For a reproducible source selection, use the same release tag or commit in both
+the download URL and `--ref`. Python dependency versions still follow requirements.txt.
+`--upstream CHECKOUT` passes a verified existing Superpowers checkout to setup.
+
+Repeated runs reuse the current clean source revision without fetching updates;
+an explicit different `--ref` is rejected. Modified checkouts, unrelated destination
+folders, and redirected venv folders are preserved and rejected. A failed initial
+fetch leaves its newly created directory for inspection. Dependency installation
+may still need network access. Registration failures preserve other installations;
+if moving from a development checkout, uninstall its registration explicitly first.
+The bootstrap does not migrate old plans or replace an existing registration.
+
+The success message reports the installed commit, skill invocation, and registration
+removal command. Keep the installation directory and venv while using the bridge.
+
 ## Local setup
 
 Create a Python 3.12 virtual environment at `venv/`. From the Gigaopen source root:

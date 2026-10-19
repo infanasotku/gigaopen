@@ -11,12 +11,16 @@ planned.
 
 ## Usage
 
-Use a Python 3.12 virtual environment at `venv/`. From the Gigaopen source root:
+With Git and Python 3.12 installed:
 
 ```sh
-venv/bin/python -m pip install -r requirements.txt
-venv/bin/python -m gigaopen setup
+wget -qO- https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh | bash
 ```
+
+The bootstrap installs a stable checkout and venv under
+`~/.local/share/gigaopen/source`. For an existing development checkout, use
+`venv/bin/python -m pip install -r requirements.txt`, then
+`venv/bin/python -m gigaopen setup` instead.
 
 Setup fetches the exact Superpowers commit in
 [`upstream.lock.yaml`](upstream.lock.yaml) into a private cache and links only the
@@ -34,7 +38,7 @@ bash ~/.agents/skills/gigaopen-superpowers/scripts/gigaopen prepare \
 ```
 
 `--upstream` and `--state-root` override the defaults. Normal commands stay offline.
-`venv/bin/python -m gigaopen uninstall` removes only this checkout's registration;
+The launcher's `uninstall` command removes only its checkout's registration;
 private plans and caches remain.
 
 ## Flow
