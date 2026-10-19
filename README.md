@@ -14,7 +14,7 @@ planned.
 With Git and Python 3.12 installed:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh | bash
 ```
 
 The bootstrap installs a stable checkout and venv under

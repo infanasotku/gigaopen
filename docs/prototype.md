@@ -9,7 +9,7 @@ layouts and full agent-runtime conflict detection remain outside its scope.
 With Git and Python 3.12 available:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh | bash
 ```
 
 Alternatively download setup.sh and run `bash setup.sh`. The script installs
@@ -21,7 +21,7 @@ It does not install system packages or edit shell profiles.
 Options can be passed through the pipe with `bash -s --`:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh |
+curl -fsSL https://raw.githubusercontent.com/infanasotku/gigaopen/main/setup.sh |
   bash -s -- --dir /absolute/path/to/gigaopen --python /path/to/python3.12
 ```
 
